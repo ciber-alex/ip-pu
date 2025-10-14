@@ -1,0 +1,10 @@
+{
+  "name": "public-ip-web",
+  "version": "1.0.0",
+  "description": "Web que muestra la IP publica en grande, verde fosforito, fondo negro y parpadeando",
+  "main": "server.js",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
