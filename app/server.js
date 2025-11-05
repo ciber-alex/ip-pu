@@ -1,5 +1,7 @@
 const express = require("express");
 const app = express();
+app.use(express.static(__dirname));
+
 
 const REFRESH_SECONDS = parseInt(process.env.REFRESH_SECONDS || "10", 10);
 
@@ -11,7 +13,7 @@ app.get("/", (_req, res) => {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mi IP pública</title>
+  <title>Ippu</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
@@ -106,7 +108,7 @@ app.get("/", (_req, res) => {
 <body>
   <div class="wrap">
     <header class="brand">
-      <h2>Created by <span>CiberAlex</span> — Ip-Pu</h2>
+      <h2>Created by <span>Ciber-A</span> — Ippu</h2>
     </header>
     <main>
       <h1 id="ip">—.—.—.—</h1>
