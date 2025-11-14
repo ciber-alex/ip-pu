@@ -54,7 +54,7 @@ app.get("/", async (req, res) => {
     }
   }
 
-  // 🔹 Navegador → tu web verde fosforito (igual que antes)
+  // 🔹 Navegador → tu web verde fosforito (igual que antes) CSS
   res.type("html").send(`<!doctype html>
 <html lang="es">
 <head>
@@ -85,17 +85,27 @@ app.get("/", async (req, res) => {
       position: relative;
     }
     h1 {
-      font-size: clamp(48px, 12vw, 180px);
-      margin: 0 0 1rem 0;
-      letter-spacing: 2px;
-      text-shadow:
+    
+    font-size: clamp(48px, 8vw, 150px);
+    margin: 0 0 1rem 0;
+    letter-spacing: 2px;
+    text-shadow:
         0 0 6px rgba(57,255,20,0.8),
         0 0 18px rgba(57,255,20,0.6),
         0 0 36px rgba(57,255,20,0.4);
-      animation: blink 1.2s steps(2, start) infinite;
-      user-select: all;
-      word-break: break-word;
+    animation: blink 1.2s steps(2, start) infinite;
+    user-select: all;
+    white-space: nowrap;
     }
+     
+    @media (max-width: 600px) {
+     h1 {
+         font-size: 6vw;      /* más pequeña para que quepa la IPv4 entera */
+         letter-spacing: 0.2rem;
+  }
+}
+
+
     @keyframes blink {
       0% { opacity: 1; }
       49% { opacity: 1; }
