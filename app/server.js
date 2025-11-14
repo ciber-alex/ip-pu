@@ -1,13 +1,60 @@
 const express = require("express");
 const app = express();
-app.use(express.static(__dirname));
 
+// Si estás detrás de proxy (Apache, Nginx, etc.)
+app.set("trust proxy", true);
+
+app.use(express.static(__dirname));
 
 const REFRESH_SECONDS = parseInt(process.env.REFRESH_SECONDS || "10", 10);
 
-// Página HTML servida por el backend (el navegador consulta ipify directamente)
-// y, si falla, usa un proxy sencillo del propio backend.
-app.get("/", (_req, res) => {
+// ---- Función para obtener IP pública desde upstream (ipify / ifconfig) ----
+async function getPublicIpFromUpstreams() {
+  let ip = null;
+
+  // Intento 1: ipify
+  try {
+    const r1 = await fetch("https://api.ipify.org?format=json", { cache: "no-store" });
+    const j1 = await r1.json();
+    ip = j1.ip;
+  } catch (_) {}
+
+  // Intento 2: ifconfig.me
+  if (!ip) {
+    const r2 = await fetch("https://ifconfig.me/ip", { cache: "no-store" });
+    ip = (await r2.text()).trim();
+  }
+
+  // Intento 3: ifconfig.co
+  if (!ip) {
+    const r3 = await fetch("https://ifconfig.co/ip", { cache: "no-store" });
+    ip = (await r3.text()).trim();
+  }
+
+  if (!ip) throw new Error("No IP from upstream");
+  return ip;
+}
+
+// -------------------
+//   RUTA PRINCIPAL /
+// -------------------
+app.get("/", async (req, res) => {
+  const ua = (req.headers["user-agent"] || "").toLowerCase();
+
+  // 🔹 Si viene de curl/wget/httpie → devolvemos IP pública en texto plano
+  if (/curl|wget|httpie|powershell|http_client|python-requests/.test(ua)) {
+    try {
+      const ip = await getPublicIpFromUpstreams();
+      return res.type("text/plain").send(ip + "\n");
+    } catch (e) {
+      return res
+        .status(502)
+        .type("text/plain")
+        .send("Error obteniendo IP pública\n");
+    }
+  }
+
+  // 🔹 Navegador → tu web verde fosforito (igual que antes)
   res.type("html").send(`<!doctype html>
 <html lang="es">
 <head>
@@ -128,11 +175,8 @@ app.get("/", (_req, res) => {
 
     async function tryFetchers() {
       const fetchers = [
-        // Cliente → ipify (principal)
         () => fetch('https://api.ipify.org?format=json', {cache:'no-store'}).then(r => r.json()).then(j => j.ip),
-        // Cliente → ifconfig.co (alternativa)
         () => fetch('https://ifconfig.co/json', {cache:'no-store'}).then(r => r.json()).then(j => j.ip),
-        // Fallback: proxy del backend (por si CORS/red bloquea)
         () => fetch('/ip-proxy', {cache:'no-store'}).then(r => r.json()).then(j => j.ip),
       ];
       let lastErr = null;
@@ -161,31 +205,12 @@ app.get("/", (_req, res) => {
 </html>`);
 });
 
-// Proxy súper simple (fallback) que pide la IP desde el servidor (Node 20 tiene fetch nativo)
+// ----------------------
+// /ip-proxy (igual que antes)
+// ----------------------
 app.get("/ip-proxy", async (_req, res) => {
   try {
-    let ip = null;
-
-    // Intento 1: ipify
-    try {
-      const r1 = await fetch("https://api.ipify.org?format=json", { cache: "no-store" });
-      const j1 = await r1.json();
-      ip = j1.ip;
-    } catch (_) {}
-
-    // Intento 2: ifconfig.me
-    if (!ip) {
-      const r2 = await fetch("https://ifconfig.me/ip", { cache: "no-store" });
-      ip = (await r2.text()).trim();
-    }
-
-    // Intento 3: ifconfig.co
-    if (!ip) {
-      const r3 = await fetch("https://ifconfig.co/ip", { cache: "no-store" });
-      ip = (await r3.text()).trim();
-    }
-
-    if (!ip) throw new Error("No IP from upstream");
+    const ip = await getPublicIpFromUpstreams();
     res.json({ ip });
   } catch (e) {
     res.status(502).json({ error: "No se pudo obtener IP desde upstream" });
